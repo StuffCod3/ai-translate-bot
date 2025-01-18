@@ -14,8 +14,9 @@ services:
       context: ./bot
     depends_on:
       - translation_service
-    env_file:
-      - ./bot/.env
+    environment:
+      - API_TOKEN=
+      - TRANSLATION_SERVICE_URL=http://translation_service:5000/translate
     networks:
       - my_network
 
