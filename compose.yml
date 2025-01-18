@@ -3,14 +3,23 @@ version: '3.8'
 services:
   translation_service:
     build:
-      context: ./gpt  # Путь к директории с вашим Flask приложением
+      context: ./gpt
     ports:
       - "5000:5000"
+    networks:
+      - my_network
 
   aiogram_bot:
     build:
-      context: ./bot  # Путь к директории с вашим Aiogram ботом
+      context: ./bot
     depends_on:
       - translation_service
-    env_file:
-      - ./bot/.env  # Убедитесь, что файл .env находится в этой директории
+    environment:
+      - API_TOKEN=
+      - TRANSLATION_SERVICE_URL=http://translation_service:5000/translate
+    networks:
+      - my_network
+
+networks:
+  my_network:
+    driver: bridge
