@@ -4,6 +4,7 @@ import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm import State, StatesGroup
 from dotenv import load_dotenv
 import os
 
@@ -20,20 +21,28 @@ storage = MemoryStorage()
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(storage=storage)
 
+# Определение состояний
+class TranslationStates(StatesGroup):
+    waiting_for_language = State()
+    waiting_for_text = State()
+
 @dp.message(Command('start'))
 async def send_welcome(message: types.Message):
-    await message.answer("Привет! Я бот для перевода слов или текста на любой язык. Напиши текст, которое хочешь перевести, и язык (например, 'Привет en' для перевода на английский).")
+    await message.answer("Привет! Я бот для перевода. На какой язык вы хотите перевести? (например, 'en' для английского)")
+    await TranslationStates.waiting_for_language.set()
 
-@dp.message()
-async def process_translation(message: types.Message):
-    # Разделяем текст на оригинальный текст и целевой язык
-    parts = message.text.split(' ', 1)
-    
-    if len(parts) < 2:
-        await message.answer("Пожалуйста, укажите слово и язык перевода. Пример: 'привет en'")
-        return
+@dp.message(TranslationStates.waiting_for_language)
+async def process_language(message: types.Message, state: TranslationStates):
+    target_language = message.text.strip()
+    await state.update_data(target_language=target_language)  # Сохраняем язык
+    await message.answer(f"Вы выбрали язык: {target_language}. Теперь напишите текст, который хотите перевести.")
+    await TranslationStates.waiting_for_text.set()
 
-    original_text, target_language = parts
+@dp.message(TranslationStates.waiting_for_text)
+async def process_translation(message: types.Message, state: TranslationStates):
+    user_data = await state.get_data()
+    target_language = user_data.get('target_language')
+    original_text = message.text.strip()
 
     # Отправка запроса к микросервису
     try:
@@ -51,6 +60,9 @@ async def process_translation(message: types.Message):
     except requests.exceptions.RequestException as e:
         logging.error(f"Ошибка при запросе к сервису перевода: {e}")
         await message.answer("Не удалось подключиться к сервису перевода. Попробуйте позже.")
+
+    # Завершаем состояние
+    await state.finish()
 
 async def main():
     # Запуск бота
