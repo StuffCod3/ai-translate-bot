@@ -4,7 +4,8 @@ import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.fsm import State, StatesGroup
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.context import FSMContext
 from dotenv import load_dotenv
 import os
 
@@ -27,19 +28,19 @@ class TranslationStates(StatesGroup):
     waiting_for_text = State()
 
 @dp.message(Command('start'))
-async def send_welcome(message: types.Message):
-    await message.answer("Привет! Я бот для перевода. На какой язык вы хотите перевести? (например, 'en' для английского)")
-    await TranslationStates.waiting_for_language.set()
+async def send_welcome(message: types.Message, state: FSMContext):
+    await message.answer("Привет! Я бот для перевода. На какой язык вы хотите перевести?")
+    await state.set_state(TranslationStates.waiting_for_language)
 
 @dp.message(TranslationStates.waiting_for_language)
-async def process_language(message: types.Message, state: TranslationStates):
+async def process_language(message: types.Message, state: FSMContext):
     target_language = message.text.strip()
     await state.update_data(target_language=target_language)  # Сохраняем язык
     await message.answer(f"Вы выбрали язык: {target_language}. Теперь напишите текст, который хотите перевести.")
-    await TranslationStates.waiting_for_text.set()
+    await state.set_state(TranslationStates.waiting_for_text)
 
 @dp.message(TranslationStates.waiting_for_text)
-async def process_translation(message: types.Message, state: TranslationStates):
+async def process_translation(message: types.Message, state: FSMContext):
     user_data = await state.get_data()
     target_language = user_data.get('target_language')
     original_text = message.text.strip()
@@ -62,7 +63,7 @@ async def process_translation(message: types.Message, state: TranslationStates):
         await message.answer("Не удалось подключиться к сервису перевода. Попробуйте позже.")
 
     # Завершаем состояние
-    await state.finish()
+    await state.set_state(None)
 
 async def main():
     # Запуск бота

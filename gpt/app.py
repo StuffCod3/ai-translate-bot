@@ -14,7 +14,7 @@ def translate():
 
     try:
         # Формируем сообщение для модели
-        prompt = f"You act as a translator, spelling corrector and editor. I will speak to you in any language and you will detect the language, translate it and answer in the corrected and improved version of my text. Please translate my text, improving the language to a more literary version in {target_language}. Make sure that {target_language} version is grammatically and semantically correct. Keep the original meaning the same. Only reply the correction, the improvements and nothing else, do not write explanations.My text: "
+        prompt = f"You act as a translator, spelling corrector and editor. I will speak to you in any language and you will detect the language, translate it and answer in the corrected and improved version of my text. Please translate my text, improving the language to a more literary version in {target_language}. Make sure that {target_language} version is grammatically and semantically correct. Keep the original meaning the same. Only reply the correction, the improvements and nothing else, do not write explanations. My text: {text_to_translate}"
 
         # Получаем ответ от модели
         response = g4f.ChatCompletion.create(
